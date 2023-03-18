@@ -3,9 +3,13 @@
 #define WIN_CHAIN 5
 
 #include <iostream>
-#include <cmath>
 
 using namespace std;
+
+/// <summary>
+///  cin 입력이 fail인지 확인 후, 실패라면 버퍼 지우기
+/// </summary>
+void ClearInBuffer();
 
 class Game
 {
@@ -22,41 +26,6 @@ private :
 	Stone turn = Stone::black;
 	int turnPassed = 0;
 
-public :
-	Game()
-	{
-		cout << "[NEW GAME STARTED]" << endl;
-	}
-
-	~Game()
-	{
-		cout << "[GAME END]" << endl;
-	}
-
-	void Loop()
-	{
-		pair<int, int> coord;
-
-		while (true)
-		{
-			DrawBoard();
-			while (!GetInput(coord));
-			PlaceStone(coord);
-			if (IsVictory(coord.first, coord.second))
-			{
-				DrawBoard();
-				cout << ((turn == Stone::white) ? "백돌" : "흑돌") << "의 승리!" << endl;
-				break;
-			}
-			else if (turnPassed >= BOARD_H * BOARD_W)
-			{
-				cout << "칸이 모두 찼습니다, 무승부!" << endl;
-				break;
-			}
-			SwitchTurn();
-		}
-	}
-
 	void DrawBoard()
 	{
 		// x축 위치표시기
@@ -64,7 +33,6 @@ public :
 		for (size_t i = 0; i < BOARD_W; i++)
 		{
 			cout << i;
-
 			if (i < 10) cout << " ";
 		}
 		cout << endl;
@@ -92,7 +60,7 @@ public :
 					marker = "○";
 					break;
 				default:
-					marker = "□";
+					marker = "ㆍ";
 					break;
 				}
 				cout << marker;
@@ -102,7 +70,7 @@ public :
 		cout << endl;
 	}
 
-	bool GetInput(pair<int, int> &output)
+	bool GetInput(pair<int, int>& output)
 	{
 		int xInput = -1;
 		int yInput = -1;
@@ -114,11 +82,7 @@ public :
 			!CanPlaceHere(xInput, yInput))
 		{
 			cout << "그렇게는 할 수 없습니다." << "\n\n";
-			if (cin.fail())
-			{
-				cin.clear();
-				cin.ignore(256, '\n');
-			}
+			ClearInBuffer();
 			return false;
 		}
 
@@ -154,9 +118,9 @@ public :
 		if (1 + GetStoneChain(x, y, 1, 0) + GetStoneChain(x, y, -1, 0) == WIN_CHAIN ||	// 가로 체크
 			1 + GetStoneChain(x, y, 0, 1) + GetStoneChain(x, y, 0, -1) == WIN_CHAIN ||  // 세로 체크
 			1 + GetStoneChain(x, y, 1, -1) + GetStoneChain(x, y, -1, 1) == WIN_CHAIN ||	// 우상향 체크
-			1 + GetStoneChain(x, y, 1, 1) + GetStoneChain(x, y, -1, -1) == WIN_CHAIN )	// 우하향 체크
+			1 + GetStoneChain(x, y, 1, 1) + GetStoneChain(x, y, -1, -1) == WIN_CHAIN)	// 우하향 체크
 			return true;
-		 return false;
+		return false;
 	}
 
 	int GetStoneChain(int x, int y, int xoff, int yoff)
@@ -171,13 +135,87 @@ public :
 		return 1 + GetStoneChain(x + xoff, y + yoff, xoff, yoff);
 	}
 
+	bool IsBoardFull()
+	{
+		if (turnPassed >= BOARD_H * BOARD_W)
+			return true;
+		return false;
+	}
+public :
+	Game()
+	{
+		cout << "\n[NEW GAME STARTED] \n" << WIN_CHAIN << "개의 돌을 연속으로 놓으면 승리합니다!" << endl;
+		Loop();
+	}
 
+	~Game()
+	{
+		ClearInBuffer();
+		cout << "[GAME END] \n" << endl;
+	}
+
+	void Loop()
+	{
+		pair<int, int> coord;
+
+		while (true)
+		{
+			DrawBoard();
+			while (!GetInput(coord));
+			PlaceStone(coord);
+			if (IsVictory(coord.first, coord.second))
+			{
+				DrawBoard();
+				cout << ((turn == Stone::white) ? "백돌" : "흑돌") << "의 승리!" << endl;
+				break;
+			}
+			else if (IsBoardFull())
+			{
+				cout << "칸이 모두 찼습니다, 무승부!" << endl;
+				break;
+			}
+			SwitchTurn();
+		}
+	}
 };
 
 int main()
 {
-	Game game;
-	game.Loop();
+	Game* game;
+	char input;
 
+	while (true)
+	{
+		game = new Game;
+		delete game;
+
+	ASK_NEW_GAME:
+		cout << "새 게임을 시작합니까? (y / n) : ";
+		while (!(cin >> input))
+			ClearInBuffer();
+		switch (input)
+		{
+		case 'y':
+		case 'Y':
+			cout << "새 게임을 시작합니다." << endl;
+			break;
+		case 'n':
+		case 'N':
+			cout << "게임을 종료합니다." << endl;
+			goto GAME_END;
+		default:
+			cout << "잘못된 입력입니다." << endl;
+			goto ASK_NEW_GAME;
+		}
+	}
+GAME_END:
 	return 0;
+}
+
+void ClearInBuffer()
+{
+	if (!cin.fail())
+		return;
+	cin.clear();
+	cin.ignore(256, '\n');
 }
